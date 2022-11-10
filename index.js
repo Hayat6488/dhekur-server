@@ -4,6 +4,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 
 
 //middle wares
@@ -14,10 +15,35 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.djdi1bf.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+function verifyJWT(req, res, next){
+    const authHeader = req.headers.authorization;
+    if(!authHeader){
+        res.status(401).send({message: 'unauthorized access'})
+    }
+    {
+        const token = authHeader.split(' ')[1];
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(error, decoded){
+            if(error){
+                res.status(401).send({message: 'unauthorized access'})
+            }
+            req.decoded = decoded;
+            next();
+        })
+    }
+}
+
 async function run() {
     try {
         const foodsCollection = client.db('dhekur').collection('foods');
         const reviewsCollection = client.db('dhekur').collection('reviews');
+
+        // foods api
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1d'})
+            res.send({token});
+        })
 
         app.get('/food', async (req, res) => {
             const query = {};
@@ -40,6 +66,12 @@ async function run() {
             res.send(food);
         });
 
+        app.post('/foods', async(req, res) => {
+            const food = req.body;
+            const result = await foodsCollection.insertOne(food);
+            res.send(result);
+        });
+
         //reviews api
 
         app.post('/reviews', async(req, res) => {
@@ -60,7 +92,13 @@ async function run() {
             res.send(reviews)
         });
 
-        app.get('/myreviews', async(req, res) => {
+        app.get('/myreviews', verifyJWT, async(req, res) => {
+            const decoded = req.decoded;
+            console.log('inside orders api', decoded)
+            if(decoded.uid !== req.query.uid){
+                res.status(403).send({message: 'unauthorized access'})
+            }
+            
             let query = {};
             if(req.query.uid){
                 query = {
