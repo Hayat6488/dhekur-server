@@ -94,7 +94,6 @@ async function run() {
 
         app.get('/myreviews', verifyJWT, async(req, res) => {
             const decoded = req.decoded;
-            console.log('inside orders api', decoded)
             if(decoded.uid !== req.query.uid){
                 res.status(403).send({message: 'unauthorized access'})
             }
