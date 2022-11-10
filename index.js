@@ -68,9 +68,16 @@ async function run() {
                 }
             }
             const cursor = reviewsCollection.find(query);
-            const result = await cursor.toArray();
-            res.send(result);
+            const reviews = await cursor.toArray();
+            res.send(reviews);
         });
+
+        app.delete('/myreviews/:id', async(req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id)};
+            const result = await reviewsCollection.deleteOne(query);
+            res.send(result);
+        })
 
     }
     finally {
