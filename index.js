@@ -87,7 +87,7 @@ async function run() {
                     serviceId: req.query.serviceId
                 }
             }
-            const cursor = reviewsCollection.find(query);
+            const cursor = reviewsCollection.find(query).sort({date: -1, time: -1});
             const reviews = await cursor.toArray();
             res.send(reviews)
         });
@@ -98,7 +98,7 @@ async function run() {
             if(decoded.uid !== req.query.uid){
                 res.status(403).send({message: 'unauthorized access'})
             }
-            
+
             let query = {};
             if(req.query.uid){
                 query = {
